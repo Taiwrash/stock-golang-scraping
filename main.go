@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gocolly/colly"
 )
 
@@ -43,7 +44,7 @@ func main() {
 
 	c := colly.NewCollector()
 
-	stocks := []Stock{}
+	scrapedStocks := []Stock{}
 
 	// Find and visit all links
 	c.OnHTML("div#quote-header-info", func(e *colly.HTMLElement) {
@@ -53,12 +54,13 @@ func main() {
 		stock.change = e.ChildText("fin-streamer[data-field='regularMarketChangePercent']")
 
 		// / attach scraped data to the source.
-		stocks = append(stocks, stock)
+		scrapedStocks = append(scrapedStocks, stock)
 	})
 	c.Wait()
 
 	c.OnRequest(func(r *colly.Request) {
 		fmt.Println("Visiting", r.URL)
+		fmt.Println("Scrapping begins in progress...")
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
@@ -71,7 +73,7 @@ func main() {
 	}
 
 	// / List of the scrapped data
-	fmt.Println(stocks)
+	fmt.Println(scrapedStocks)
 
 	// / Creating a csv and saving the scrapped data on local.
 	f, err := os.Create("data.csv")
@@ -84,7 +86,7 @@ func main() {
 	w := csv.NewWriter(f)
 	headers := []string{"company", "price", "change"}
 	w.Write(headers)
-	for _, records := range stocks {
+	for _, records := range scrapedStocks {
 		record := []string{
 			records.company,
 			records.price,
@@ -93,4 +95,14 @@ func main() {
 		w.Write(record)
 	}
 	defer w.Flush()
+
+	// / Server setup to make it an API
+
+	r := gin.Default()
+	r.GET("/stocks", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": scrapedStocks,
+		})
+	})
+	r.Run()
 }
