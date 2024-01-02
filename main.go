@@ -49,12 +49,10 @@ func main() {
 	c.OnHTML("div#quote-header-info", func(e *colly.HTMLElement) {
 		stock := Stock{}
 		stock.company = e.ChildText("h1")
-		fmt.Println("Company:", stock.company)
 		stock.price = e.ChildText("fin-streamer[data-field='regularMarketPrice']")
-		fmt.Println("Price:", stock.price)
 		stock.change = e.ChildText("fin-streamer[data-field='regularMarketChangePercent']")
-		fmt.Println("Change:", stock.change)
 
+		// / attach scraped data to the source.
 		stocks = append(stocks, stock)
 	})
 	c.Wait()
@@ -72,8 +70,10 @@ func main() {
 		c.Visit(URLToBeLocated)
 	}
 
+	// / List of the scrapped data
 	fmt.Println(stocks)
 
+	// / Creating a csv and saving the scrapped data on local.
 	f, err := os.Create("data.csv")
 	if err != nil {
 		fmt.Printf("Error: %v", err)
@@ -93,15 +93,4 @@ func main() {
 		w.Write(record)
 	}
 	defer w.Flush()
-
-	// / Server setup to make it an API
-
-	// r := gin.Default()
-	// r.GET("/stocks", func(c *gin.Context) {
-	// 	c.JSON(200, gin.H{
-	// 		"message": stocks,
-	// 	})
-	// })
-	// r.Run()
-
 }
